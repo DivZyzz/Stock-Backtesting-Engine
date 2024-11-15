@@ -8,11 +8,9 @@ import plotly.graph_objs as go
 
 # Streamlit App Title and Description
 st.title("Stock Backtesting Engine")
-st.markdown("""
-This application allows you to backtest stock strategies using historical data.
-Select a stock, set the parameters, and analyze the performance of various trading strategies.
-**Developed by [Divyanshu Yadav](https://github.com/DivZyzz)**
-
+st.markdown(""" 
+This application allows you to backtest stock strategies using historical data. 
+Select a stock, set the parameters, and analyze the performance of various trading strategies. **Developed by [Divyanshu Yadav](https://github.com/DivZyzz)** 
 """)
 
 # Stock Options Dictionary
@@ -28,11 +26,24 @@ stock_options = {
 
 # Sidebar for stock selection
 st.sidebar.subheader("1. Select Stock Data")
-stock_choice = st.sidebar.selectbox("Choose a stock index to analyze", list(stock_options.keys()))
-
+selected_stock_names = st.sidebar.multiselect("Select Stocks", list(stock_options.keys()), default=list(stock_options.keys())[0])
 # Backtest Configuration Inputs
 st.sidebar.subheader("2. Backtest Configuration")
-initial_capital = st.sidebar.number_input("Initial Capital", min_value=1, step=1000)
+st.sidebar.markdown("### Portfolio Allocation")
+allocation = {}
+for stock in selected_stock_names:
+    allocation[stock] = st.sidebar.slider(
+        f"Allocation for {stock} (%)", min_value=0, max_value=100, value=100 // len(selected_stock_names)
+        )
+# Ensure that the total allocation is 100%
+if sum(allocation.values()) != 100:
+    st.sidebar.error("Total allocation must be 100%!")
+else:
+    # Dictionary to store each stock's backtest results
+    portfolio_results = {}
+    
+    
+initial_capital = st.sidebar.number_input("Initial Capital", min_value=1000, step=1000)
 start_date = st.sidebar.text_input("Start Date (YYYY-MM-DD)", "2023-01-01")
 end_date = st.sidebar.text_input("End Date (YYYY-MM-DD)", "2024-01-01")
 investment_type = st.sidebar.selectbox("Investment Style", ["Aggressive", "Moderate", "Passive"])
@@ -234,7 +245,7 @@ if st.sidebar.button("Run Backtest"):
                     
                 
             # Output summary
-            st.markdown(f"### Backtest Summary for {stock_choice.replace(' ', '_')}:")           
+            st.markdown(f"### Backtest Summary for {stock_symbol.replace(' ', '_')}:")         
             st.write(f"Strategy Type: {strategy_type}")
             st.write(f"Initial Capital: ${initial_capital:,.2f}")
             st.write(f"Final Portfolio Value: ${portfolio_value:.2f}")
@@ -280,6 +291,71 @@ if st.sidebar.button("Run Backtest"):
         
             st.subheader("Trade History")
             st.dataframe(trades)
+            
+            return {
+                "Final Value": portfolio_value,
+                "Total Return (%)": total_return_percent,
+                "Sharpe Ratio": sharpe_ratio,
+                "Max Drawdown (%)": max_drawdown * 100,
+                "Annualized Return (%)": annualized_return * 100,
+                "Total Trades": len(trade_profits),
+                "Winning Trades": wins,
+                "Losing Trades": losses,
+                "Win/Loss Ratio": win_loss_ratio,
+                "Average Profit per Trade (%)": avg_profit_per_trade * 100,
+                
+            
+                }
 
         # Execute backtest function
-        backtest(stock_options[stock_choice], initial_capital, start_date, end_date, investment_type, strategy_type, transaction_cost, stop_loss_pct, take_profit_pct)
+        for stock_name in selected_stock_names:
+            stock_symbol = stock_options[stock_name]
+            stock_allocation_pct = allocation[stock_name]
+            stock_initial_capital = (initial_capital * stock_allocation_pct) / 100
+            stock_result = backtest(
+                stock_symbol=stock_symbol,
+                initial_capital=stock_initial_capital,
+                start_date=start_date,
+                end_date=end_date,
+                investment_type=investment_type,
+                strategy_type=strategy_type,
+                transaction_cost=transaction_cost,
+                stop_loss_pct=stop_loss_pct,
+                take_profit_pct=take_profit_pct,
+            
+                )
+            portfolio_results[stock_name] = stock_result
+            
+                
+        #calculating the final portfolio perform
+        
+        if sum(allocation.values()) == 100:
+            final_portfolio_value = sum(
+                result["Final Value"] for result in portfolio_results.values()
+                )
+            
+            st.markdown("## Combined Portfolio Performance")
+            st.write(f"Initial Capital: ${initial_capital:,.2f}")
+            st.write(f"Final Portfolio Value: ${final_portfolio_value:.2f}")
+            total_return_pct = (final_portfolio_value - initial_capital) / initial_capital * 100
+            st.write(f"Total Return: {total_return_pct:.2f}%")
+        else:
+            st.sidebar.error("Please ensure the total allocation is 100%.")
+        
+        
+        
+        
+        
+        ###st.markdown("### Portfolio Performance Summary")
+        ###if portfolio_results:
+           ### total_portfolio_value = sum(result["Final Value"] for result in portfolio_results.values())
+         ###   st.write(f"Total Portfolio Value: {total_portfolio_value:.2f}")
+          ###  for stock, result in portfolio_results.items():
+          ###      st.write(f"**{stock} Summary:**")
+         ###   for key, value in result.items():
+         ###       st.write(f"{key}: {value}") 
+    
+        
+        
+            
+    
