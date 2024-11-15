@@ -71,11 +71,11 @@ Choose between Aggressive, Moderate, or Passive styles. This affects the Bolling
 
 **Strategy Type:** Select one of the following strategies:
 
-**Moving Average Crossover**
-
-**Bollinger Bands**
-
-**Combined**
+    Moving Average Crossover
+        
+    Bollinger Bands
+        
+    Combined
 
 **Transaction Costs:** Define the percentage of transaction costs (default is 0.1%).
 
