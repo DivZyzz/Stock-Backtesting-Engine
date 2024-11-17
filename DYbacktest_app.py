@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import yfinance as yf
 from datetime import datetime
 import plotly.graph_objs as go
+import plotly.express as px
 
 # Streamlit App Title and Description
 st.title("Stock Backtesting Engine")
@@ -103,8 +104,10 @@ if st.sidebar.button("Run Backtest"):
                 bollinger_signal = np.where(df['Close'] < df['Lower_Band'], 1, 0)
                 bollinger_signal = np.where(df['Close'] > df['Upper_Band'], -1, bollinger_signal)
                 ma_signal = np.where(df['Short_MA'] > df['Long_MA'], 1, 0)
-                df['Signal'] = np.where((bollinger_signal == 1) & (ma_signal == 1), 1, 0)
-                df['Signal'] = np.where((bollinger_signal == -1) & (ma_signal == 0), -1, df['Signal'])
+                #df['Signal'] = np.where((bollinger_signal == 1) & (ma_signal == 1), 1, 0)
+                #df['Signal'] = np.where((bollinger_signal == -1) & (ma_signal == 0), -1, df['Signal'])
+                df['Signal'] = np.where((bollinger_signal == 1) | (ma_signal == 1), 1, 0)  # Buy signal if either is true
+                df['Signal'] = np.where((bollinger_signal == -1) | (ma_signal == 0), -1, df['Signal']) 
 
             # Calculate daily returns
             df['Returns'] = df['Close'].pct_change().fillna(0)
@@ -248,7 +251,11 @@ if st.sidebar.button("Run Backtest"):
             st.markdown(f"### Backtest Summary for {stock_symbol.replace(' ', '_')}:")         
             st.write(f"Strategy Type: {strategy_type}")
             st.write(f"Initial Capital: ${initial_capital:,.2f}")
-            st.write(f"Final Portfolio Value: ${portfolio_value:.2f}")
+            #st.write(f"Final Portfolio Value: ${portfolio_value:.2f}")
+            if initial_capital<portfolio_value:
+                st.markdown(f"**Final Portfolio Value:** <span style='color:green;'>${portfolio_value:.2f}</span>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"**Final Portfolio Value:** <span style='color:red;'>${portfolio_value:.2f}</span>", unsafe_allow_html=True)
             st.write(f"{'Profit' if total_return > 0 else 'Loss'}: ${abs(portfolio_value - initial_capital):,.2f}")
             st.write(f"Total Return: {total_return_percent:.2f}%")
             st.write(f"Sharpe Ratio: {sharpe_ratio:.2f}")
@@ -334,13 +341,53 @@ if st.sidebar.button("Run Backtest"):
                 result["Final Value"] for result in portfolio_results.values()
                 )
             
-            st.markdown("## Combined Portfolio Performance")
-            st.write(f"Initial Capital: ${initial_capital:,.2f}")
-            st.write(f"Final Portfolio Value: ${final_portfolio_value:.2f}")
+            st.subheader("## Combined Portfolio Performance")
+            st.markdown(f"Initial Capital: ${initial_capital:,.2f}")
+            #st.markdown(f"Final Portfolio Value: ${final_portfolio_value:.2f}")
+            if initial_capital<final_portfolio_value:
+                st.markdown(f"**Final Portfolio Value:** <span style='color:green; font-size:20px; font-weight:bold;'>${final_portfolio_value:.2f}</span>", unsafe_allow_html=True)
+                st.markdown(f"**Total Profit:** <span style='color:green; font-size:20px; font-weight:bold;'>${final_portfolio_value-initial_capital:.2f}</span>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"**Final Portfolio Value:** <span style='color:red; font-size:20px; font-weight:bold;'>${final_portfolio_value:.2f}</span>", unsafe_allow_html=True)
+                st.markdown(f"**Total Loss:** <span style='color:red; font-size:20px; font-weight:bold;'>${final_portfolio_value-initial_capital:.2f}</span>", unsafe_allow_html=True)
+                
             total_return_pct = (final_portfolio_value - initial_capital) / initial_capital * 100
-            st.write(f"Total Return: {total_return_pct:.2f}%")
+            if total_return_pct>0:
+                st.markdown(f"**Total Return:** <span style='color:green; font-size:18px; font-weight:bold;'>{total_return_pct:.2f}%</span>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"**Total Return:** <span style='color:red; font-size:18px; font-weight:bold;'>{total_return_pct:.2f}%</span>", unsafe_allow_html=True)
+                
+            
+            #st.write(f"Total Return: {total_return_pct:.2f}%")
         else:
             st.sidebar.error("Please ensure the total allocation is 100%.")
+        
+        # Additional Visualizations
+        #st.write("### Performance Highlights")
+        #st.bar_chart([result["Sharpe Ratio"] for result in portfolio_results.values()], use_container_width=True)
+        
+        sharpe_ratios = [result["Sharpe Ratio"] for result in portfolio_results.values()]
+        stock_names = list(portfolio_results.keys())
+        fig = go.Figure([go.Bar(x=stock_names, y=sharpe_ratios, marker_color='lightblue')])
+        fig.update_layout(title="Sharpe Ratio by Stock", xaxis_title="Stock", yaxis_title="Sharpe Ratio", template="plotly_dark")
+        st.plotly_chart(fig)
+        
+        time_points = list(range(1, len(selected_stock_names) + 1))
+        portfolio_values = [result["Final Value"] for result in portfolio_results.values()]
+        fig2 = go.Figure([go.Scatter(x=time_points, y=portfolio_values, mode='lines+markers', marker=dict(color="cyan"))])
+        fig2.update_layout(title="Portfolio Value Over Time", xaxis_title="Time (Simulation)", yaxis_title="Portfolio Value", template="plotly_dark")
+        st.plotly_chart(fig2)
+        
+        #st.write("### Portfolio Value Over Time")
+        #st.line_chart([result["Final Value"] for result in portfolio_results.values()], use_container_width=True)
+
+        # Displaying Trade History Summary as well
+        st.write("### Trade History Summary")
+        for stock, result in portfolio_results.items():
+            st.markdown(f"<p style='font-weight:bold; color:#1E90FF;'>{stock} Trades:</p>", unsafe_allow_html=True)
+            st.write(f"**Total Trades:** {result['Total Trades']}")
+            st.write(f"**Winning Trades:** {result['Winning Trades']}")
+            st.write(f"**Losing Trades:** {result['Losing Trades']}")
         
         
         
