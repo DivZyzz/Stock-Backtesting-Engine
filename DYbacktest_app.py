@@ -57,19 +57,18 @@ if st.sidebar.button("Run Backtest"):
     with st.spinner("Running backtest..."):
         def backtest(stock_symbol, initial_capital, start_date, end_date, investment_type, strategy_type, transaction_cost=0.001, stop_loss_pct=0.05, take_profit_pct=0.10):
             # Load and prepare the data
-            df = yf.download(stock_symbol, start='1992-01-01', auto_adjust=False)  # Set auto_adjust=False
+            df = yf.download(stock_symbol, start='1992-01-01')
             df.reset_index(inplace=True)
-            df.columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']  # 7 columns
+            df.columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']
             df['Date'] = pd.to_datetime(df['Date'], errors='coerce', utc=True)
             df = df.dropna(subset=['Date'])
-            
             # Add these lines above the existing line 50
             start_date = pd.to_datetime(start_date).tz_localize('UTC')
             end_date = pd.to_datetime(end_date).tz_localize('UTC')
-        
+
             # Replace line 50 with the following line
             df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)]
-        
+
             df.set_index('Date', inplace=True)
             st.write("**Selected Stock Data:**", df)
         
