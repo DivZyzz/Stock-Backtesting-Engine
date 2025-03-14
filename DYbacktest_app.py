@@ -60,13 +60,13 @@ if st.sidebar.button("Run Backtest"):
             df = yf.download(stock_symbol, start='1992-01-01')
             df.reset_index(inplace=True)
             expected_columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']
-             if len(df.columns) == 6:
-                 df.columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']
-             elif len(df.columns) == 7: 
-                 df.columns = expected_columns
-             else:
-                 st.error(f"Unexpected number of columns: {len(df.columns)}. Expected 6 or 7 columns.")
-                 return  # Exit the function if the columns don't match
+            if len(df.columns) == 6:
+                df.columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']
+            elif len(df.columns) == 7: 
+                df.columns = expected_columns
+            else:
+                st.error(f"Unexpected number of columns: {len(df.columns)}. Expected 6 or 7 columns.")
+                return  # Exit the function if the columns don't match
              
              #df.columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']
             df['Date'] = pd.to_datetime(df['Date'], errors='coerce', utc=True)
